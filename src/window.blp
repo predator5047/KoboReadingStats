@@ -10,51 +10,32 @@ template $KoboreadingstatsWindow: Adw.ApplicationWindow {
     [top]
     Adw.HeaderBar {}
 
-    content: Adw.NavigationSplitView split_view {
-      sidebar: Adw.NavigationPage {
-        title: _('Sidebar AAA');
-        tag: 'sidebar';
-
-        Adw.ToolbarView {
-          [top]
-          Adw.HeaderBar {
-            show-start-title-buttons: false;
-          }
-
-          content: ScrolledWindow {
-            ListBox sidebar_listbox {
-              styles [
-                "boxed-list",
-              ]
-
-              selection-mode: none;
-
-              Adw.ActionRow {
-                activatable-widget: activatable_toggle;
-                title: '10.02.2025';
-
-                [suffix]
-                Button activatable_toggle {
-                  icon-name: 'list-add-symbolic';
-                  valign: center;
-                }
-              }
-            }
-          };
-        }
-      };
-
-      content: Adw.NavigationPage {
-        title: _('Content');
-        tag: 'content';
-
-        ScrolledWindow {
-          Adw.ActionRow {
+    content:
+      Gtk.ScrolledWindow {
+      Adw.OverlaySplitView split_view {
+        sidebar: Adw.StatusPage {
+          title: _("Session Date");
+          Gtk.Box sidebar_listbox {
+            orientation: vertical;
             halign: center;
-            title: 'SED';
+            valign: start;
+            //margin-bottom: 12;
+            margin-top: 12;
+            spacing: 12;
+            Button {
+              styles ["pill"]
+              label: "dog";
+            }
           }
-        }
-      };
+        };
+
+        content: Adw.StatusPage {
+          title: _('Content');
+          
+
+          
+        };
+      }
     };
   };
 }
