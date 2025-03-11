@@ -1,0 +1,62 @@
+using Gtk 4.0;
+using Adw 1;
+
+template $KoboreadingstatsWindow: Adw.ApplicationWindow {
+  title: _('KoboReadingStats');
+  default-width: 1800;
+  default-height: 600;
+
+  content: Adw.ToolbarView {
+    [top]
+    Adw.HeaderBar {}
+
+    content: Adw.NavigationSplitView split_view {
+      sidebar: Adw.NavigationPage {
+        title: _('Sidebar AAA');
+        tag: 'sidebar';
+
+        Adw.ToolbarView {
+          [top]
+          Adw.HeaderBar {
+            show-start-title-buttons: false;
+          }
+
+          content: ScrolledWindow {
+            ListBox sidebar_listbox {
+              styles [
+                "boxed-list",
+              ]
+
+              selection-mode: none;
+
+              Adw.ActionRow {
+                activatable-widget: activatable_toggle;
+                title: '10.02.2025';
+
+                [suffix]
+                Button activatable_toggle {
+                  icon-name: 'list-add-symbolic';
+                  valign: center;
+                }
+              }
+            }
+          };
+        }
+      };
+
+      content: Adw.NavigationPage {
+        title: _('Content');
+        tag: 'content';
+
+        ScrolledWindow {
+          Adw.ActionRow {
+            halign: center;
+            title: 'SED';
+          }
+        }
+      };
+    };
+  };
+}
+
+menu primary_menu {}
