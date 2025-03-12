@@ -18,12 +18,17 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
- 
+ public async void foo() {
+    yield;
+}
+
 
 [GtkTemplate (ui = "/org/gnome/Example/window.ui")]
 public class Koboreadingstats.Window : Adw.ApplicationWindow {
     [GtkChild]
     private unowned Gtk.Box sidebar_listbox;
+    [GtkChild]
+    private unowned Adw.OverlaySplitView split_view;
 
     uint bytes_to_int(uint8[] b) {
         uint x0 = b[0];
@@ -37,43 +42,205 @@ public class Koboreadingstats.Window : Adw.ApplicationWindow {
 
     public Window (Gtk.Application app) {
         Object (application: app);
-        var fs = FileStream.open("/home/octavian/Projects/parse-kobo/1021.data", "r");
 
-        fs.seek(0, FileSeek.END);
 
-        var file_size = fs.tell();
+        app.add_action_entries(new ActionEntry[]{
+            {"select_kobo_directory", () => this.open_dir.begin()},
+        }, this);
 
-        fs.seek(0, FileSeek.SET);
-
-        var buffer = new uint8[file_size];
-
-        fs.read(buffer, buffer.length);
         
-        var t =  new DateTime.from_unix_local(123);
-        int prev = 0;
+        //stdout.printf("Task ref count %u\n", task.ref_count);
+
+        //task.run_in_thread((owned) foo.callback);
+
+
+    }
+
+    public async void open_dir() {
+        var dialog = new Gtk.FileDialog();
+        var folder = yield dialog.select_folder(this, null);
+
+        var file = File.new_build_filename(folder.get_path(), ".kobo", "KoboReader.sqlite");
+        
+        if (file != null) {
+            
+            stdout.printf("Selected file %s %d\n", file.get_path(), (int)file.query_exists(null));
+        }
+        var task = new GLib.Task(this, null, setup_ui);
+        task.set_data<string>("db_path", file.get_path());
+
+        task.run_in_thread((task, source) => {
+            var this_ = source as Koboreadingstats.Window;
+            //var p = file.get_path();
+            var res = this_.load_db(task.get_data<string>("db_path"));
+
+       
+            task.return_pointer((owned) res, null);
+
+            
+        });
+
+    }
+
+    public void setup_ui(Object? _, Task task) {
+        
+        var map = (owned) task.propagate_pointer() as Gee.TreeMap<DateTime, Gee.ArrayList<TimeSpan?>>;
+        
+        foreach (var item in map) {
+            var total = item.value.fold<TimeSpan?>((acc, x) => acc + x, 0);
+            uint64 seconds = total / TimeSpan.SECOND % 60;
+            uint64 minutes = total/ TimeSpan.MINUTE % 60;
+            uint64 hours = total / TimeSpan.HOUR;
+            
+
+            stdout.printf("%s %lluh %llum %llus\n", item.key.format_iso8601(), hours, minutes, seconds);
+
+
+            var button = new Gtk.Button() {
+                icon_name = "list-add-symbolic",
+                label = item.key.format("%d.%m.%Y"),
+                css_classes = {"pill"},
+            };
+
+            button.clicked.connect(this.handler);
+            button.set_data("date",  item.key);
+            button.set_data("value", item.value);
+            
+
+            sidebar_listbox.append(button);
+        }
+        sidebar_listbox.get_first_child()?.activate();
+        stdout.printf("Done loading db %u\n", map.ref_count);
+
+    }
+
+
+       
+    private Gee.ArrayList<DateTime> dates_from_qvariant(uint8[] buffer) {
+        var dates = new Gee.ArrayList<DateTime>();
+
+
+        
+
         const int QMETA_TYPE_UINT = 3, QUINT_OFFSET = 2;
-        for (int i = 50; i < 640; i += 9) {
+        for (int i = 50; i < buffer.length - 9; i += 9) {
             uint ts = bytes_to_int(buffer[QUINT_OFFSET + i:]);
 
             if (buffer[i] == QMETA_TYPE_UINT) {
 
-                stdout.printf("value of type is %d,  %d, delta %d : %u , %s\n", (int) buffer[i] ,i, i - prev, ts, new DateTime.from_unix_local(ts).format_iso8601());
-                prev = i;
+                //stdout.printf("value of type is %d,  %d, delta %d : %u , %s\n", (int) buffer[i] ,i, i - prev, ts, new DateTime.from_unix_local(ts).format_iso8601());
+                var date = new DateTime.from_unix_local(ts);
+                if (date != null && date.get_year() > 2000 && date.get_year() < 2030)
+                    dates.add(date);
             }
         }
 
+        return dates;
+    }
+   
+    
 
-        for (int i = 0; i < 100; i++) {
-            
-            var button = new Gtk.Button();
-            button.icon_name = "list-add-symbolic";
-            
-            button.name = i.to_string();
-            button.label = "10.10.2025";
-            button.add_css_class ("pill");
+    public Gee.TreeMap<DateTime, Gee.ArrayList<TimeSpan?>> load_db(string db_path = "/home/octavian/Projects/parse-kobo/KoboReader.sqlite") {
 
-            //label.text = i.to_string();
-            sidebar_listbox.append(button);
+        Sqlite.Database db;
+        //string db_path = "/run/media/octavian/KOBOeReader/.kobo/KoboReader.sqlite";
+        //int err = Sqlite.Database.open("/home/octavian/Projects/parse-kobo/KoboReader.sqlite", out db);
+        int err = Sqlite.Database.open(db_path, out db);
+        stdout.printf("%d\n", err);
+        assert(err == 0);
+
+
+        string query = "SELECT a.ExtraData, b.ExtraData, a.ContentId FROM Event a, Event b WHERE a.ContentId = b.ContentId AND a.EventType = 1020 AND b.EventType = 1021";
+        Sqlite.Statement stmt;
+        err = db.prepare_v2(query, -1, out stmt, null);
+        assert(err == 0);
+        var map = new Gee.TreeMap<DateTime, Gee.ArrayList<TimeSpan?>>((x, y) => y.compare(x));
+
+        while (stmt.step() == Sqlite.ROW) {
+            unowned var start_buffer = (uint8[]) stmt.column_blob(0);
+            start_buffer.length = stmt.column_bytes(0);
+
+            unowned var end_buffer = (uint8[]) stmt.column_blob(1);
+            end_buffer.length = stmt.column_bytes(1);
+
+            var end_dates = dates_from_qvariant(end_buffer);
+            
+            var start_dates = dates_from_qvariant(start_buffer);
+            
+            
+            end_dates.sort((x, y) => y.compare(x));
+            start_dates.sort((x, y) => y.compare(x));
+
+
+            for (int i = 0; i < start_dates.size && i < end_dates.size; i++) {
+                var delta = end_dates[i].difference(start_dates[i]);
+               
+                var date_part = new DateTime.local(start_dates[i].get_year(), start_dates[i].get_month(), start_dates[i].get_day_of_month(), 0, 0, 0);
+
+                if (!map.has_key(date_part)) {
+                    map.set(date_part, new Gee.ArrayList<TimeSpan?>());
+                }
+                
+
+                var sessions_read = map.get(date_part);
+                if (delta >= TimeSpan.SECOND * 40)
+                    sessions_read.add(delta);
+
+            }
         }
+
+        foreach (var item in map) {
+            var total = item.value.fold<TimeSpan?>((acc, x) => acc + x, 0);
+            uint64 seconds = total / TimeSpan.SECOND % 60;
+            uint64 minutes = total/ TimeSpan.MINUTE % 60;
+            uint64 hours = total / TimeSpan.HOUR;
+            
+
+            stdout.printf("%s %lluh %llum %llus\n", item.key.format_iso8601(), hours, minutes, seconds);
+        }
+
+        return map;
+        
+
+    }
+
+    private void handler(Gtk.Button button) {
+        
+        var sessions = button.get_data<Gee.ArrayList<TimeSpan?>>("value");
+
+        var total_read = sessions.fold<TimeSpan?>((acc, x) => acc + x, 0);
+        uint64 seconds = total_read / TimeSpan.SECOND % 60;
+        int64 minutes = total_read/ TimeSpan.MINUTE % 60;
+        uint64 hours = total_read / TimeSpan.HOUR;
+
+        var day = button.get_data<DateTime>("date");
+
+        string title = @"On $(day.format("%d.%m.%Y")) read for $(hours)h $(minutes)m $(seconds)s";
+
+        var box = new Gtk.Box(Gtk.Orientation.VERTICAL, 12) {
+            
+            halign = Gtk.Align.CENTER,
+            valign = Gtk.Align.START,
+            
+        };
+
+        foreach (var total in sessions) {
+            seconds = total / TimeSpan.SECOND % 60;
+            minutes = total/ TimeSpan.MINUTE % 60;
+            hours = total / TimeSpan.HOUR;
+
+            var label = new Gtk.Label(@"$(hours)h $(minutes)m $(seconds)s");
+            label.add_css_class("title-1");
+            box.append(label);
+        }
+
+        split_view.content = new Adw.StatusPage () {
+            title = title,
+            child = box,
+        };
+
+        
+        
+        
     }
 }

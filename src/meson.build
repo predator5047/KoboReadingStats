@@ -8,7 +8,9 @@ koboreadingstats_deps = [
   config_dep,
   dependency('gtk4'),
   dependency('libadwaita-1', version: '>= 1.4'),
-  dependency('sqlite3')
+  dependency('sqlite3'),
+  dependency('gee-0.8'),
+  dependency('gio-2.0'),
 ]
 
 blueprints = custom_target('blueprints',
