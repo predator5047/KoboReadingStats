@@ -18,17 +18,49 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
- public async void foo() {
-    yield;
-}
-
-
 [GtkTemplate (ui = "/org/gnome/Example/window.ui")]
 public class Koboreadingstats.Window : Adw.ApplicationWindow {
     [GtkChild]
     private unowned Gtk.Box sidebar_listbox;
     [GtkChild]
     private unowned Adw.OverlaySplitView split_view;
+
+    struct TimeSpanUtil {
+        TimeSpan t;
+
+        public TimeSpanUtil(TimeSpan t) {
+            this.t = t;
+        }
+
+        public uint64 seconds {
+            get { return t / TimeSpan.SECOND % 60; }
+        }
+
+        public uint64 minutes {
+            get { return t / TimeSpan.MINUTE % 60; }
+        }
+
+        public uint64 hours {
+            get { return t / TimeSpan.HOUR; }
+        }
+
+        public string to_string() {
+            string res = "";
+            
+            if (hours > 0) {
+                res += @"$(hours)h";
+            }
+
+            if (minutes > 0 || hours > 0) {
+                res += @" $(minutes)m";
+            }
+
+            res += @" $(seconds)s";
+
+
+            return res.strip();
+        }
+    }
 
     uint bytes_to_int(uint8[] b) {
         uint x0 = b[0];
@@ -47,13 +79,6 @@ public class Koboreadingstats.Window : Adw.ApplicationWindow {
         app.add_action_entries(new ActionEntry[]{
             {"select_kobo_directory", () => this.open_dir.begin()},
         }, this);
-
-        
-        //stdout.printf("Task ref count %u\n", task.ref_count);
-
-        //task.run_in_thread((owned) foo.callback);
-
-
     }
 
     public async void open_dir() {
@@ -66,6 +91,7 @@ public class Koboreadingstats.Window : Adw.ApplicationWindow {
             
             stdout.printf("Selected file %s %d\n", file.get_path(), (int)file.query_exists(null));
         }
+
         var task = new GLib.Task(this, null, setup_ui);
         task.set_data<string>("db_path", file.get_path());
 
@@ -74,10 +100,7 @@ public class Koboreadingstats.Window : Adw.ApplicationWindow {
             //var p = file.get_path();
             var res = this_.load_db(task.get_data<string>("db_path"));
 
-       
             task.return_pointer((owned) res, null);
-
-            
         });
 
     }
@@ -87,14 +110,6 @@ public class Koboreadingstats.Window : Adw.ApplicationWindow {
         var map = (owned) task.propagate_pointer() as Gee.TreeMap<DateTime, Gee.ArrayList<TimeSpan?>>;
         
         foreach (var item in map) {
-            var total = item.value.fold<TimeSpan?>((acc, x) => acc + x, 0);
-            uint64 seconds = total / TimeSpan.SECOND % 60;
-            uint64 minutes = total/ TimeSpan.MINUTE % 60;
-            uint64 hours = total / TimeSpan.HOUR;
-            
-
-            stdout.printf("%s %lluh %llum %llus\n", item.key.format_iso8601(), hours, minutes, seconds);
-
 
             var button = new Gtk.Button() {
                 icon_name = "list-add-symbolic",
@@ -118,9 +133,6 @@ public class Koboreadingstats.Window : Adw.ApplicationWindow {
        
     private Gee.ArrayList<DateTime> dates_from_qvariant(uint8[] buffer) {
         var dates = new Gee.ArrayList<DateTime>();
-
-
-        
 
         const int QMETA_TYPE_UINT = 3, QUINT_OFFSET = 2;
         for (int i = 50; i < buffer.length - 9; i += 9) {
@@ -189,19 +201,7 @@ public class Koboreadingstats.Window : Adw.ApplicationWindow {
             }
         }
 
-        foreach (var item in map) {
-            var total = item.value.fold<TimeSpan?>((acc, x) => acc + x, 0);
-            uint64 seconds = total / TimeSpan.SECOND % 60;
-            uint64 minutes = total/ TimeSpan.MINUTE % 60;
-            uint64 hours = total / TimeSpan.HOUR;
-            
-
-            stdout.printf("%s %lluh %llum %llus\n", item.key.format_iso8601(), hours, minutes, seconds);
-        }
-
         return map;
-        
-
     }
 
     private void handler(Gtk.Button button) {
@@ -209,27 +209,18 @@ public class Koboreadingstats.Window : Adw.ApplicationWindow {
         var sessions = button.get_data<Gee.ArrayList<TimeSpan?>>("value");
 
         var total_read = sessions.fold<TimeSpan?>((acc, x) => acc + x, 0);
-        uint64 seconds = total_read / TimeSpan.SECOND % 60;
-        int64 minutes = total_read/ TimeSpan.MINUTE % 60;
-        uint64 hours = total_read / TimeSpan.HOUR;
-
+        
         var day = button.get_data<DateTime>("date");
 
-        string title = @"On $(day.format("%d.%m.%Y")) read for $(hours)h $(minutes)m $(seconds)s";
+        string title = @"On $(day.format("%d.%m.%Y")) read for $(TimeSpanUtil(total_read))";
 
         var box = new Gtk.Box(Gtk.Orientation.VERTICAL, 12) {
-            
             halign = Gtk.Align.CENTER,
-            valign = Gtk.Align.START,
-            
+            valign = Gtk.Align.START,            
         };
 
         foreach (var total in sessions) {
-            seconds = total / TimeSpan.SECOND % 60;
-            minutes = total/ TimeSpan.MINUTE % 60;
-            hours = total / TimeSpan.HOUR;
-
-            var label = new Gtk.Label(@"$(hours)h $(minutes)m $(seconds)s");
+            var label = new Gtk.Label(TimeSpanUtil(total).to_string());
             label.add_css_class("title-1");
             box.append(label);
         }
@@ -238,9 +229,5 @@ public class Koboreadingstats.Window : Adw.ApplicationWindow {
             title = title,
             child = box,
         };
-
-        
-        
-        
     }
 }
