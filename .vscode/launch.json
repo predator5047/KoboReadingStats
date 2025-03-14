@@ -1,0 +1,14 @@
+{
+    
+    
+    "configurations": [
+      {
+        "type": "cppdbg",
+        "request": "launch",
+        "name": "Launch Program",
+        "program": "${workspaceFolder}/builddir/src/koboreadingstats",
+        "preLaunchTask": "build",
+        "cwd": "${workspaceFolder}/builddir/src/",
+      }
+    ]
+    }
