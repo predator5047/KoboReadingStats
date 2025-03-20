@@ -12,7 +12,7 @@ template $KoboreadingstatsWindow: Adw.ApplicationWindow {
       Button {
         label: _('Select kobo directory');
         styles ["pill", "suggested-action"]
-        action-name: "app.select_kobo_directory";
+        clicked => $on_select_dir_clicked();
         
       }
     }

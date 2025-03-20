@@ -74,14 +74,10 @@ public class Koboreadingstats.Window : Adw.ApplicationWindow {
 
     public Window (Gtk.Application app) {
         Object (application: app);
-
-
-        app.add_action_entries(new ActionEntry[]{
-            {"select_kobo_directory", () => this.open_dir.begin()},
-        }, this);
     }
 
-    public async void open_dir() {
+    [GtkCallback]
+    public async void on_select_dir_clicked() {
         var dialog = new Gtk.FileDialog();
         var folder = yield dialog.select_folder(this, null);
 
@@ -203,6 +199,7 @@ public class Koboreadingstats.Window : Adw.ApplicationWindow {
 
         return map;
     }
+
 
     private void handler(Gtk.Button button) {
         
