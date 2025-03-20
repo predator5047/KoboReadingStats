@@ -1,8 +1,8 @@
 # List of source files containing translatable strings.
 # Please keep this file sorted alphabetically.
-data/org.gnome.Example.desktop.in
-data/org.gnome.Example.metainfo.xml.in
-data/org.gnome.Example.gschema.xml
+data/org.butiu.koboreadingstats.desktop.in
+data/org.butiu.koboreadingstats.metainfo.xml.in
+data/org.butiu.koboreadingstats.gschema.xml
 src/main.vala
 src/window.vala
 src/window.blp

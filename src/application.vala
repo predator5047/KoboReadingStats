@@ -21,7 +21,7 @@
 public class Koboreadingstats.Application : Adw.Application {
     public Application () {
         Object (
-            application_id: "org.gnome.Example",
+            application_id: "org.butiu.koboreadingstats",
             flags: ApplicationFlags.DEFAULT_FLAGS
         );
     }
@@ -46,7 +46,7 @@ public class Koboreadingstats.Application : Adw.Application {
         string[] developers = { "Butiu Octavian Alexandru" };
         var about = new Adw.AboutDialog () {
             application_name = "koboreadingstats",
-            application_icon = "org.gnome.Example",
+            application_icon = "org.butiu.koboreadingstats",
             developer_name = "Butiu Octavian Alexandru",
             translator_credits = _("translator-credits"),
             version = "0.1.0",

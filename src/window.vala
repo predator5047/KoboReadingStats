@@ -18,7 +18,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-[GtkTemplate (ui = "/org/gnome/Example/window.ui")]
+[GtkTemplate (ui = "/org/butiu/koboreadingstats/window.ui")]
 public class Koboreadingstats.Window : Adw.ApplicationWindow {
     [GtkChild]
     private unowned Gtk.Box sidebar_listbox;
@@ -103,7 +103,7 @@ public class Koboreadingstats.Window : Adw.ApplicationWindow {
             task.return_pointer((owned) res, null);
         });
 
-    }
+    } 
 
     public void setup_ui(Object? _, Task task) {
         

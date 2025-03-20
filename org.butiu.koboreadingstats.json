@@ -1,5 +1,5 @@
 {
-    "id" : "org.gnome.Example",
+    "id" : "org.butiu.koboreadingstats",
     "runtime" : "org.gnome.Platform",
     "runtime-version" : "master",
     "sdk" : "org.gnome.Sdk",

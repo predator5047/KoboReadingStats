@@ -1,7 +1,7 @@
 [Desktop Entry]
 Name=koboreadingstats
 Exec=koboreadingstats
-Icon=org.gnome.Example
+Icon=org.butiu.koboreadingstats
 Terminal=false
 Type=Application
 Categories=Utility;
