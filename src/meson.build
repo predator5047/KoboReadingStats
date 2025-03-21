@@ -2,6 +2,7 @@ koboreadingstats_sources = [
   'main.vala',
   'application.vala',
   'window.vala',
+  'sessions-page.vala',
 ]
 
 koboreadingstats_deps = [
@@ -17,6 +18,7 @@ blueprints = custom_target('blueprints',
   input: files(
     'gtk/help-overlay.blp',
     'window.blp',
+     'sessions-page.blp',
   ),
   output: '.',
   command: [find_program('blueprint-compiler'), 'batch-compile', '@OUTPUT@', '@CURRENT_SOURCE_DIR@', '@INPUT@'],

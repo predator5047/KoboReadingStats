@@ -1,6 +1,16 @@
+row separator {
+  --_separator-margin: 9px;
 
+  margin-top: var(--_separator-margin);
+  margin-bottom: var(--_separator-margin);
+}
 
-statuspage {
-    
-   
+windowbuttonbox {
+  border-radius: 8px;
+  padding: 2px;
+  margin: -2px;
+}
+
+button.window-menu-button {
+  border-radius: 50%;
 }

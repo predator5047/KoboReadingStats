@@ -3,6 +3,8 @@
   <gresource prefix="/org/butiu/koboreadingstats/">
     <file preprocess="xml-stripblanks">window.ui</file>
     <file preprocess="xml-stripblanks">gtk/help-overlay.ui</file>
+    <file preprocess="xml-stripblanks">sessions-page.ui</file>
+   
     <file>style.css</file>
   </gresource>
 </gresources>

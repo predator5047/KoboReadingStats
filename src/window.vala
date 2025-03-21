@@ -21,9 +21,9 @@
 [GtkTemplate (ui = "/org/butiu/koboreadingstats/window.ui")]
 public class Koboreadingstats.Window : Adw.ApplicationWindow {
     [GtkChild]
-    private unowned Gtk.Box sidebar_listbox;
+    private unowned Gtk.ListBox sidebar_listbox;
     [GtkChild]
-    private unowned Adw.OverlaySplitView split_view;
+    private unowned Adw.NavigationSplitView split_view;
 
     struct TimeSpanUtil {
         TimeSpan t;
@@ -76,6 +76,10 @@ public class Koboreadingstats.Window : Adw.ApplicationWindow {
         Object (application: app);
     }
 
+    static construct {
+        typeof(SessionsPage).ensure();
+    }
+
     [GtkCallback]
     public async void on_select_dir_clicked() {
         var dialog = new Gtk.FileDialog();
@@ -104,21 +108,33 @@ public class Koboreadingstats.Window : Adw.ApplicationWindow {
     public void setup_ui(Object? _, Task task) {
         
         var map = (owned) task.propagate_pointer() as Gee.TreeMap<DateTime, Gee.ArrayList<TimeSpan?>>;
-        
-        foreach (var item in map) {
 
-            var button = new Gtk.Button() {
-                icon_name = "list-add-symbolic",
-                label = item.key.format("%d.%m.%Y"),
-                css_classes = {"pill"},
+        sidebar_listbox.remove_all();
+
+        foreach (var item in map) {
+            var box = new Gtk.Box(Gtk.Orientation.VERTICAL, 12) {
+                
+                margin_start= 6,
+                margin_end= 6,
+                margin_top= 12,
+                margin_bottom= 12,
+                    
             };
 
-            button.clicked.connect(this.handler);
-            button.set_data("date",  item.key);
-            button.set_data("value", item.value);
-            
+            box.append(new Gtk.Label(item.key.format("%d.%m.%Y")));
 
-            sidebar_listbox.append(button);
+            var row = new Adw.PreferencesRow() {
+                child = box,
+                title = item.key.format("%d.%m.%Y"),
+                css_classes = {"property", "title-3", },
+            };
+
+           
+            row.set_data("date",  item.key);
+            row.set_data("value", item.value);
+            
+          
+            sidebar_listbox.append(row);
         }
         sidebar_listbox.get_first_child()?.activate();
         stdout.printf("Done loading db %u\n", map.ref_count);
@@ -200,8 +216,8 @@ public class Koboreadingstats.Window : Adw.ApplicationWindow {
         return map;
     }
 
-
-    private void handler(Gtk.Button button) {
+    [GtkCallback]
+    private void change_reading_session_page(Gtk.ListBox _, Gtk.ListBoxRow button) {
         
         var sessions = button.get_data<Gee.ArrayList<TimeSpan?>>("value");
 
@@ -213,18 +229,20 @@ public class Koboreadingstats.Window : Adw.ApplicationWindow {
 
         var box = new Gtk.Box(Gtk.Orientation.VERTICAL, 12) {
             halign = Gtk.Align.CENTER,
-            valign = Gtk.Align.START,            
+            valign = Gtk.Align.START,
+            css_classes = {"boxed-list"},            
         };
 
         foreach (var total in sessions) {
             var label = new Gtk.Label(TimeSpanUtil(total).to_string());
-            label.add_css_class("title-1");
+            label.add_css_class("title-2");
             box.append(label);
         }
 
-        split_view.content = new Adw.StatusPage () {
-            title = title,
+        split_view.content = new Adw.NavigationPage(new Adw.StatusPage(){
             child = box,
-        };
+            title = title,
+        }, "");
+        
     }
 }

@@ -10,45 +10,47 @@ template $KoboreadingstatsWindow: Adw.ApplicationWindow {
     [top]
     Adw.HeaderBar {
       Button {
-        label: _('Select kobo directory');
-        styles ["pill", "suggested-action"]
+        margin-top: 10;
+        margin-bottom: 10;
+        visible: true;
+        label: _("Select kobo directory");
+
+        styles [
+          "pill",
+          "suggested-action",
+        ]
+
         clicked => $on_select_dir_clicked();
-        
       }
     }
-    width-request: 1800;
-    height-request: 1600;
 
-    content:
-      Gtk.ScrolledWindow {
-      Adw.OverlaySplitView split_view {
-        sidebar: Adw.StatusPage {
-          title: _("Session Date");
-          Gtk.Box sidebar_listbox {
-            orientation: vertical;
-            halign: center;
-            valign: start;
-            //margin-bottom: 12;
-            margin-top: 12;
-            spacing: 12;
-            
+    content: Adw.NavigationSplitView split_view {
+      sidebar: Adw.NavigationPage {
+        title: _("Session Date");
+
+        child: Adw.ToolbarView {
+          [top]
+          Adw.HeaderBar {
+            styles [
+              "title-2",
+            ]
           }
-        };
 
-        content: Adw.StatusPage content_page { 
-          title: _('No reading data');
-          
-          Gtk.Box content_box {
-            orientation: vertical;
-            halign: center;
-            valign: start;
-            
-          }
-          
+          content: Gtk.ScrolledWindow {
+            Gtk.ListBox sidebar_listbox {
+              vexpand: true;
 
-          
+              styles [
+                "navigation-sidebar",
+              ]
+
+              row-activated => $change_reading_session_page();
+            }
+          };
         };
-      }
+      };
+
+      content: $KoboreadingstatsSessionsPage {};
     };
   };
 }
