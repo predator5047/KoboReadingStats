@@ -29,6 +29,10 @@ template $KoboreadingstatsWindow: Adw.ApplicationWindow {
         title: _("Session Date");
 
         child: Adw.ToolbarView {
+          styles [
+            "navigation-sidebar",
+          ]
+
           [top]
           Adw.HeaderBar {
             styles [
@@ -37,20 +41,39 @@ template $KoboreadingstatsWindow: Adw.ApplicationWindow {
           }
 
           content: Gtk.ScrolledWindow {
-            Gtk.ListBox sidebar_listbox {
+            Gtk.ListView {
+              model: Gtk.SingleSelection selection_model {
+                model: bind template.list_store;
+                selection-changed => $change_reading_session_page();
+              };
+
               vexpand: true;
 
-              styles [
-                "navigation-sidebar",
-              ]
+              factory: Gtk.BuilderListItemFactory {
+                template Gtk.ListItem {
+                  child: Box {
+                    spacing: 12;
+                    orientation: vertical;
 
-              row-activated => $change_reading_session_page();
+                    Label {
+                      label: bind template.item as <$KoboreadingstatsSessionsPage>.day_string;
+
+                      styles [
+                        "property",
+                        "title-2",
+                      ]
+                    }
+                  };
+                }
+              };
             }
           };
         };
       };
 
-      content: $KoboreadingstatsSessionsPage {};
+      content: $KoboreadingstatsSessionsPage {
+        //title: _("No reading data");
+      };
     };
   };
 }

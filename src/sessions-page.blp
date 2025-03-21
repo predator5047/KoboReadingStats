@@ -1,17 +1,16 @@
 using Gtk 4.0;
 using Adw 1;
 
-template $KoboreadingstatsSessionsPage : Adw.NavigationPage {
-    child: Adw.StatusPage {
-        title: _("No reading data");
-        
-            
+template $KoboreadingstatsSessionsPage: Adw.NavigationPage {
+    Adw.StatusPage {
+
+        title: bind template.title_string;
+
         Gtk.Box content_box {
+            spacing: 12;
             orientation: vertical;
             halign: center;
             valign: start;
-        
         }
-       
-    };
+    }
 }

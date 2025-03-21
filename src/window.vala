@@ -21,46 +21,11 @@
 [GtkTemplate (ui = "/org/butiu/koboreadingstats/window.ui")]
 public class Koboreadingstats.Window : Adw.ApplicationWindow {
     [GtkChild]
-    private unowned Gtk.ListBox sidebar_listbox;
-    [GtkChild]
     private unowned Adw.NavigationSplitView split_view;
+    [GtkChild]
+    private unowned Gtk.SingleSelection selection_model;
 
-    struct TimeSpanUtil {
-        TimeSpan t;
-
-        public TimeSpanUtil(TimeSpan t) {
-            this.t = t;
-        }
-
-        public uint64 seconds {
-            get { return t / TimeSpan.SECOND % 60; }
-        }
-
-        public uint64 minutes {
-            get { return t / TimeSpan.MINUTE % 60; }
-        }
-
-        public uint64 hours {
-            get { return t / TimeSpan.HOUR; }
-        }
-
-        public string to_string() {
-            string res = "";
-            
-            if (hours > 0) {
-                res += @"$(hours)h";
-            }
-
-            if (minutes > 0 || hours > 0) {
-                res += @" $(minutes)m";
-            }
-
-            res += @" $(seconds)s";
-
-
-            return res.strip();
-        }
-    }
+    
 
     uint bytes_to_int(uint8[] b) {
         uint x0 = b[0];
@@ -70,6 +35,8 @@ public class Koboreadingstats.Window : Adw.ApplicationWindow {
         //stdout.printf("%d %d %d %d\n", x0, x1, x2, x3);
         return (x0 << 24) | (x1 << 16) | (x2 << 8) | (x3 << 0);
     }
+
+    public ListStore list_store {get; set;}
     
 
     public Window (Gtk.Application app) {
@@ -78,6 +45,10 @@ public class Koboreadingstats.Window : Adw.ApplicationWindow {
 
     static construct {
         typeof(SessionsPage).ensure();
+    }
+
+    construct {
+        list_store = new ListStore(typeof(SessionsPage));
     }
 
     [GtkCallback]
@@ -103,42 +74,25 @@ public class Koboreadingstats.Window : Adw.ApplicationWindow {
             task.return_pointer((owned) res, null);
         });
 
-    } 
+    }
+    
+
 
     public void setup_ui(Object? _, Task task) {
         
         var map = (owned) task.propagate_pointer() as Gee.TreeMap<DateTime, Gee.ArrayList<TimeSpan?>>;
 
-        sidebar_listbox.remove_all();
+        list_store = new ListStore(typeof(SessionsPage));
 
         foreach (var item in map) {
-            var box = new Gtk.Box(Gtk.Orientation.VERTICAL, 12) {
+
+            list_store.append(new SessionsPage(item.key, item.value) {
                 
-                margin_start= 6,
-                margin_end= 6,
-                margin_top= 12,
-                margin_bottom= 12,
-                    
-            };
+            });
 
-            box.append(new Gtk.Label(item.key.format("%d.%m.%Y")));
-
-            var row = new Adw.PreferencesRow() {
-                child = box,
-                title = item.key.format("%d.%m.%Y"),
-                css_classes = {"property", "title-3", },
-            };
-
-           
-            row.set_data("date",  item.key);
-            row.set_data("value", item.value);
-            
-          
-            sidebar_listbox.append(row);
         }
-        sidebar_listbox.get_first_child()?.activate();
-        stdout.printf("Done loading db %u\n", map.ref_count);
 
+        selection_model.selection_changed(0, 1);
     }
 
 
@@ -216,33 +170,15 @@ public class Koboreadingstats.Window : Adw.ApplicationWindow {
         return map;
     }
 
+
     [GtkCallback]
-    private void change_reading_session_page(Gtk.ListBox _, Gtk.ListBoxRow button) {
+    private void change_reading_session_page(uint index, uint num) {
+        var page = selection_model.selected_item as Adw.NavigationPage;
         
-        var sessions = button.get_data<Gee.ArrayList<TimeSpan?>>("value");
+       
 
-        var total_read = sessions.fold<TimeSpan?>((acc, x) => acc + x, 0);
+        split_view.content = page;
         
-        var day = button.get_data<DateTime>("date");
-
-        string title = @"On $(day.format("%d.%m.%Y")) read for $(TimeSpanUtil(total_read))";
-
-        var box = new Gtk.Box(Gtk.Orientation.VERTICAL, 12) {
-            halign = Gtk.Align.CENTER,
-            valign = Gtk.Align.START,
-            css_classes = {"boxed-list"},            
-        };
-
-        foreach (var total in sessions) {
-            var label = new Gtk.Label(TimeSpanUtil(total).to_string());
-            label.add_css_class("title-2");
-            box.append(label);
-        }
-
-        split_view.content = new Adw.NavigationPage(new Adw.StatusPage(){
-            child = box,
-            title = title,
-        }, "");
         
     }
 }
