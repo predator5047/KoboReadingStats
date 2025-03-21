@@ -68,10 +68,12 @@ public class Koboreadingstats.Window : Adw.ApplicationWindow {
 
         task.run_in_thread((task, source) => {
             var this_ = source as Koboreadingstats.Window;
-            //var p = file.get_path();
-            var res = this_.load_db(task.get_data<string>("db_path"));
-
-            task.return_pointer((owned) res, null);
+            try {
+                var res = this_.load_db(task.get_data<string>("db_path")) ;
+                task.return_pointer((owned) res, null);
+            } catch (Error e) {
+                task.return_error(e);
+            }
         });
 
     }
@@ -80,19 +82,26 @@ public class Koboreadingstats.Window : Adw.ApplicationWindow {
 
     public void setup_ui(Object? _, Task task) {
         
-        var map = (owned) task.propagate_pointer() as Gee.TreeMap<DateTime, Gee.ArrayList<TimeSpan?>>;
+        try {
+            var map = (owned) task.propagate_pointer() as Gee.TreeMap<DateTime, Gee.ArrayList<TimeSpan?>>;
 
-        list_store = new ListStore(typeof(SessionsPage));
+            list_store = new ListStore(typeof(SessionsPage));
 
-        foreach (var item in map) {
+            foreach (var item in map) {
+                list_store.append(new SessionsPage(item.key, item.value));
+            }
 
-            list_store.append(new SessionsPage(item.key, item.value) {
-                
-            });
+            selection_model.selection_changed(0, 1);
+        } catch (Error e) {
+
+            var dialog = new Adw.AlertDialog("Error opening db", e.message);
+
+            dialog.add_response("ok", "Ok");
+            dialog.set_response_appearance("ok", Adw.ResponseAppearance.DESTRUCTIVE);
+            dialog.set_close_response("ok");
+            dialog.present(this);
 
         }
-
-        selection_model.selection_changed(0, 1);
     }
 
 
@@ -118,20 +127,26 @@ public class Koboreadingstats.Window : Adw.ApplicationWindow {
    
     
 
-    public Gee.TreeMap<DateTime, Gee.ArrayList<TimeSpan?>> load_db(string db_path = "/home/octavian/Projects/parse-kobo/KoboReader.sqlite") {
+    public Gee.TreeMap<DateTime, Gee.ArrayList<TimeSpan?>> load_db(string db_path = "/home/octavian/Projects/parse-kobo/KoboReader.sqlite") throws Error {
 
         Sqlite.Database db;
-        //string db_path = "/run/media/octavian/KOBOeReader/.kobo/KoboReader.sqlite";
-        //int err = Sqlite.Database.open("/home/octavian/Projects/parse-kobo/KoboReader.sqlite", out db);
         int err = Sqlite.Database.open(db_path, out db);
-        stdout.printf("%d\n", err);
-        assert(err == 0);
+
+        
+        if (err != 0) {
+            throw new GLib.Error(Quark.from_string("DbLoadFailed"), 1, "Error opening kobo database %s\nMake sure you selected your kobo device root folder", db_path);
+        }
 
 
         string query = "SELECT a.ExtraData, b.ExtraData, a.ContentId FROM Event a, Event b WHERE a.ContentId = b.ContentId AND a.EventType = 1020 AND b.EventType = 1021";
+
         Sqlite.Statement stmt;
         err = db.prepare_v2(query, -1, out stmt, null);
-        assert(err == 0);
+        
+        if (err != 0) {
+            throw new GLib.Error(Quark.from_string("DbLoadFailed"), 1, "Error trying to parse database");
+        }
+
         var map = new Gee.TreeMap<DateTime, Gee.ArrayList<TimeSpan?>>((x, y) => y.compare(x));
 
         while (stmt.step() == Sqlite.ROW) {
