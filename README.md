@@ -1,4 +1,4 @@
-# koboreadingstats
+# Kobo Reading Stats
 
 A ui app for showing reading statistics from Kobo ereader devices
 
